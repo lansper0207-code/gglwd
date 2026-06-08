@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Unity WebGL - 手势交互</title>
+    <style>
+        body { margin: 0; padding: 0; overflow: hidden; font-family: system-ui, sans-serif; }
+        #unity-container { position: absolute; width: 100%; height: 100%; }
+        #unity-canvas { width: 100%; height: 100%; background: #141414; display: block; }
+        /* 手势网站覆盖层：默认隐藏，全屏覆盖 */
+        #gesture-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #ffffff;
+            z-index: 20;
+            display: none;
+        }
+        #gesture-iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        /* 返回按钮 */
+        #close-gesture-btn {
+            position: absolute;
+            bottom: 24px;
+            right: 24px;
+            z-index: 21;
+            background: #0078ff;
+            color: white;
+            border: none;
+            border-radius: 40px;
+            padding: 10px 24px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            transition: 0.2s;
+        }
+        #close-gesture-btn:hover {
+            background: #005fcc;
+        }
+    </style>
+</head>
+<body>
+    <!-- Unity 画布容器 -->
+    <div id="unity-container">
+        <canvas id="unity-canvas" width=1920 height=1080 tabindex=-1></canvas>
+    </div>
+
+    <!-- 手势网站覆盖层 -->
+    <div id="gesture-overlay">
+        <iframe id="gesture-iframe" allow="camera *; microphone *" sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-modals"></iframe>
+        <button id="close-gesture-btn">← 返回 目录</button>
+    </div>
+
+    <!-- Unity 自动生成的加载脚本占位符（请不要修改这一段） -->
+    <script>
+        var unityInstance = null;
+        var buildUrl = "Build";
+        var loaderUrl = buildUrl + "/111.loader.js";
+        var config = {
+            dataUrl: buildUrl + "/111.data",
+            frameworkUrl: buildUrl + "/111.framework.js",
+            codeUrl: buildUrl + "/111.wasm",
+            streamingAssetsUrl: "StreamingAssets",
+            companyName: "DefaultCompany",
+            productName: "高句丽瓦当",
+            productVersion: "0.1",
+            showBanner: (typeof unityShowBanner === 'undefined') ? false : unityShowBanner
+        };
+        var canvas = document.querySelector("#unity-canvas");
+        var script = document.createElement("script");
+        script.src = loaderUrl;
+        script.onload = () => {
+            createUnityInstance(canvas, config, (progress) => {
+                // 可选的加载进度显示
+            }).then((instance) => {
+                unityInstance = instance;
+            }).catch((message) => {
+                console.error(message);
+            });
+        };
+        document.body.appendChild(script);
+    </script>
+
+    <!-- 手势显示/隐藏控制脚本 -->
+    <script>
+        // 显示手势网站，接收一个 URL 参数
+        function showGestureWebsite(url) {
+            var overlay = document.getElementById('gesture-overlay');
+            var iframe = document.getElementById('gesture-iframe');
+            if (!url) {
+                console.warn('手势网站 URL 为空');
+                return;
+            }
+            iframe.src = url;
+            overlay.style.display = 'block';
+            // 当 iframe 加载完成后，通知它父页面已就绪
+            iframe.onload = function() {
+                iframe.contentWindow.postMessage('fromParent: i am ready', '*');
+            };
+        }
+
+        // 关闭手势网站，返回 Unity
+        function hideGestureWebsite() {
+            var overlay = document.getElementById('gesture-overlay');
+            var iframe = document.getElementById('gesture-iframe');
+            overlay.style.display = 'none';
+            // 清空 src 以停止摄像头等资源（可选）
+            iframe.src = '';
+        }
+
+        // 监听来自手势网站的 message（用于跨域返回请求）
+        window.addEventListener('message', function(event) {
+            if (event.data === 'fromGesture: close me') {
+                hideGestureWebsite();
+            }
+        });
+
+        // 绑定关闭按钮
+        document.getElementById('close-gesture-btn').addEventListener('click', hideGestureWebsite);
+    </script>
+</body>
+</html>
